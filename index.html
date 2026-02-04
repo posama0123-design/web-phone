@@ -1,116 +1,129 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        :root {
-            --body-gold: #d4c5a2; /* F201っぽいシャンパンゴールド */
-            --button-bg: #e0e0e0;
-            --screen-green: #98fb98; /* 当時のモノクロ液晶バックライト風 */
-        }
-
-        body {
-            background-color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: sans-serif;
-        }
-
-        /* 筐体 */
-        .phone-body {
-            width: 260px;
-            background: var(--body-gold);
-            padding: 20px;
-            border-radius: 30px 30px 50px 50px;
-            box-shadow: 10px 10px 20px #000;
-            border: 2px solid #bba47a;
-        }
-
-        /* 液晶画面 */
-        .screen {
-            background: var(--screen-green);
-            height: 120px;
-            margin-bottom: 20px;
-            border: 5px solid #555;
-            border-radius: 5px;
-            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: #222;
-        }
-
-        /* ボタンレイアウト */
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
-
-        /* 絶対にへこむボタンの魔法 */
-        .key {
-            width: 60px;
-            height: 45px;
-            background: var(--button-bg);
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 1.2rem;
-            cursor: pointer;
-            outline: none;
-            
-            /* 浮き上がって見える影 */
-            box-shadow: 
-                4px 4px 6px rgba(0,0,0,0.3),
-                -2px -2px 5px rgba(255,255,255,0.8);
-            transition: all 0.05s ease;
-            position: relative;
-            top: 0;
-        }
-
-        /* 押した時の「へこみ」 */
-        .key:active {
-            box-shadow: 
-                inset 4px 4px 6px rgba(0,0,0,0.4),
-                inset -2px -2px 5px rgba(255,255,255,0.5);
-            top: 3px; /* 物理的に沈む動き */
-        }
-
-        .key-text {
-            display: block;
-            font-size: 0.6rem;
-            color: #666;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>FPS 3D World</title>
+<style>
+  body { margin: 0; overflow: hidden; }
+  #info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-family: sans-serif;
+    background: rgba(0,0,0,0.5);
+    padding: 8px;
+  }
+</style>
 </head>
 <body>
 
-<div class="phone-body">
-    <div class="screen">
-        <div id="display-number">123-4567</div>
-        <div style="font-size: 0.8rem; margin-top: 10px;">F201 HYPER</div>
-    </div>
-
-    <div class="keypad">
-        <button class="key">1<span class="key-text">あ</span></button>
-        <button class="key">2<span class="key-text">か</span></button>
-        <button class="key">3<span class="key-text">さ</span></button>
-        <button class="key">4<span class="key-text">た</span></button>
-        <button class="key">5<span class="key-text">な</span></button>
-        <button class="key">6<span class="key-text">は</span></button>
-        <button class="key">7<span class="key-text">ま</span></button>
-        <button class="key">8<span class="key-text">やら</span></button>
-        <button class="key">9<span class="key-text">わをん</span></button>
-        <button class="key">＊</button>
-        <button class="key">0</button>
-        <button class="key">＃</button>
-    </div>
+<div id="info">
+  クリックで開始<br>
+  WASD：移動 / マウス：視点
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
+
+<script>
+/* シーン */
+const scene = new THREE.Scene();
+
+/* 空（写真テクスチャ） */
+const loader = new THREE.TextureLoader();
+loader.load(
+  "https://threejs.org/examples/textures/skybox/sky.jpg",
+  texture => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = texture;
+  }
+);
+
+/* カメラ */
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+
+/* レンダラー */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+/* 一人称操作 */
+const controls = new THREE.PointerLockControls(camera, document.body);
+scene.add(controls.getObject());
+
+document.body.addEventListener("click", () => {
+  controls.lock();
+});
+
+/* 太陽 */
+const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+sun.position.set(100, 200, 100);
+sun.castShadow = true;
+scene.add(sun);
+
+/* 環境光 */
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+/* 地面 */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(500, 500),
+  new THREE.MeshStandardMaterial({ color: 0x55aa55 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* テスト用オブジェクト */
+const box = new THREE.Mesh(
+  new THREE.BoxGeometry(2, 2, 2),
+  new THREE.MeshStandardMaterial({ color: 0xff4444 })
+);
+box.position.set(5, 1, -5);
+box.castShadow = true;
+scene.add(box);
+
+/* 移動処理 */
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+const keys = {};
+
+document.addEventListener("keydown", e => keys[e.code] = true);
+document.addEventListener("keyup", e => keys[e.code] = false);
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (controls.isLocked) {
+    direction.set(0, 0, 0);
+    if (keys["KeyW"]) direction.z -= 1;
+    if (keys["KeyS"]) direction.z += 1;
+    if (keys["KeyA"]) direction.x -= 1;
+    if (keys["KeyD"]) direction.x += 1;
+
+    direction.normalize();
+    controls.moveRight(direction.x * 0.1);
+    controls.moveForward(direction.z * 0.1);
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+/* リサイズ */
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
 
 </body>
 </html>
